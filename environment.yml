@@ -1,0 +1,25 @@
+# conda env create -f environment.yml && conda activate wolverine-oggm
+name: wolverine-oggm
+channels:
+  - conda-forge
+dependencies:
+  - python=3.11
+  - oggm=1.6.3
+  - salem
+  - xarray
+  - netcdf4
+  - pandas
+  - geopandas
+  - shapely>=2
+  - rasterio
+  - scikit-image
+  - scipy
+  - pytables
+  - matplotlib
+  - jupyterlab
+  - jupytext
+  - nbconvert
+  - pytest
+  - pip
+  - pip:
+      - -e .

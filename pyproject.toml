@@ -1,0 +1,13 @@
+[build-system]
+requires = ["setuptools>=64"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "wolverine_oggm"
+version = "0.1.0"
+description = "OGGM experiments on precipitation phase and velocity at Wolverine Glacier, with a SCHNAPS forcing pathway"
+requires-python = ">=3.10"
+dependencies = ["oggm>=1.6.3", "numpy", "scipy", "pandas", "xarray", "netCDF4", "geopandas", "shapely>=2", "rasterio", "matplotlib"]
+
+[tool.setuptools]
+packages = ["wolverine_oggm"]

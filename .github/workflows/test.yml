@@ -1,0 +1,19 @@
+name: test
+on:
+  push:
+    branches: [main]
+  pull_request:
+jobs:
+  offline-glacier:
+    runs-on: ubuntu-latest
+    env:
+      WOLVERINE_OGGM_TEST: "1"
+      WOLVERINE_OGGM_WORKDIR: ${{ github.workspace }}/_work
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+      - run: pip install -e . pytest jupytext nbconvert ipykernel tables scikit-image salem
+      - run: pytest -q tests
+      - run: bash tools/build_notebooks.sh --execute
