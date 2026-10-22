@@ -37,6 +37,11 @@ no internet.
 | 05 | SCHNAPS forcing | Phase curve, warm-precipitation offset and precipitation gradient from SCHNAPS microphysics on the glacier cells; splicing SCHNAPS months into the climate file |
 | 06 | Publication figures | Multi-panel figures (PNG and editable PDF) from the runs in 03 and 04 |
 
+**Pre-run copies.** [`executed/`](executed/) holds every notebook with its outputs from a run on
+Wolverine (2026-10-22), so you can see what each one should produce before running it. These
+copies are for reading only. Run and edit the ones in `notebooks/`. Notebook 05 in `executed/`
+uses the synthetic SCHNAPS case.
+
 ### Hypotheses
 
 | | Hypothesis | Where |
