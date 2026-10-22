@@ -99,12 +99,26 @@ bash tools/build_notebooks.sh --execute              # every notebook, top to bo
 ```
 
 `WOLVERINE_OGGM_TEST=1` swaps Wolverine for OGGM's offline sample glacier (Hintereisferner, with
-HISTALP climate). It needs no data server, and it is what CI runs. Every notebook and test
-passes in that mode. **The Wolverine-specific paths have not been run yet**, because the
-environment they were written in could not reach OGGM's data server. Those paths are the
-preprocessed directory download, the W5E5 `temp_std`, the WGMS seasonal series, the
-ITS_LIVE/Millan velocities, the dynamical-spinup start state and the RGI 7 overlay. Run 00–02
-first on Wolverine and report anything that breaks.
+HISTALP climate). It needs no data server, and it is what CI runs.
+
+All seven notebooks have also been run end to end on Wolverine itself (2026-10-22, OGGM 1.6.3,
+preprocessed level 4, W5E5). Notebook 05 ran on its synthetic case, because no extracted
+SCHNAPS file was available yet.
+
+## First results on Wolverine (OGGM defaults, to be checked)
+
+* The calibration is `prcp_fac` ≈ 1.0, `temp_bias` ≈ −3.1 K and `melt_f` ≈ 5.9. The large
+  negative temperature bias also controls the rain/snow split, since phase is computed from the
+  bias-corrected temperature. It is the first thing to question in any phase experiment.
+* Against the USGS series (1980–2019): annual r = 0.80, winter r = 0.65, winter bias
+  +190 kg m⁻², summer bias −140 kg m⁻². A `prcp_fac` near 0.9 would remove the winter bias
+  (notebook 02).
+* On fixed geometry, snow turning into rain accounts for about 13% of the mass-balance response
+  to +1 or +2 K of warming. Melt accounts for the rest (notebook 03).
+* Under the 2000–2019 climate held constant, the glacier loses about half its volume over
+  150 years. It is far from balance.
+* Deformation-only OGGM velocities match the ITS_LIVE and Millan speeds above about 1,000 m, but
+  are too fast near the terminus (notebook 04).
 
 ## Caveats
 

@@ -148,11 +148,11 @@ clim
 # %%
 fig, axes = plt.subplots(1, 2, figsize=(plotting.WIDTH_2COL, 2.4))
 ann = clim.resample(time="YS").mean()
-axes[0].plot(ann["time.year"], ann["temp"], color="k")
-axes[0].set_ylabel(f"Annual mean T at {clim.attrs['ref_hgt']:.0f} m (°C)")
+axes[0].bar(ann["time.year"], clim["prcp"].resample(time="YS").sum(), color=plotting.ICE, alpha=0.4)
+axes[0].set_ylabel("Annual precipitation (mm)")
 ax2 = axes[0].twinx()
-ax2.bar(ann["time.year"], clim["prcp"].resample(time="YS").sum(), color=plotting.ICE, alpha=0.3)
-ax2.set_ylabel("Annual precipitation (mm)")
+ax2.plot(ann["time.year"], ann["temp"], color="k")
+ax2.set_ylabel(f"Annual mean T at {clim.attrs['ref_hgt']:.0f} m (°C)")
 clm = clim.groupby("time.month").mean()
 axes[1].bar(clm["month"], clm["prcp"], color=plotting.ICE, alpha=0.4, label="Precipitation")
 axes[1].set_ylabel("Monthly precipitation (mm)")
@@ -212,7 +212,9 @@ except Exception as err:          # not every glacier is a WGMS reference glacie
 
 # %%
 diag = gdir.get_diagnostics()
-pd.Series({k: diag[k] for k in diag if k.startswith("inversion") or k in ("flowline_type", "dem_source")})
+for k in diag:
+    if k.startswith("inversion") or k in ("flowline_type", "dem_source"):
+        print(f"{k:25s} {diag[k]}")
 
 # %%
 fig, ax = plt.subplots(figsize=(plotting.WIDTH_1COL * 1.3, 2.4))

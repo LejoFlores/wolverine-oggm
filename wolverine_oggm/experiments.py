@@ -59,6 +59,12 @@ def velocity_profile(gdir, suffix, years=None):
     return pd.Series(v.values, index=fl.dis_along_flowline.values / 1000, name=suffix)
 
 
+def first_year_velocity(d):
+    """Mean velocity over the first model year (annual or monthly output; t0 itself has none)."""
+    t0 = d.index[0]
+    return d.velocity_mean_myr[(d.index > t0) & (d.index <= t0 + 1)].mean()
+
+
 def compare(gdir, suffixes, labels=None, tail=10):
     """One row per run: change in volume, length and mean velocity over the run, and the means of
     the last `tail` years."""
@@ -71,7 +77,7 @@ def compare(gdir, suffixes, labels=None, tail=10):
                      "volume_change_pct": 100 * (last.volume_km3 / d.volume_km3.iloc[0] - 1),
                      "length_end_km": last.length_km,
                      "velocity_mean_end_myr": last.velocity_mean_myr,
-                     "velocity_change_pct": 100 * (last.velocity_mean_myr / d.velocity_mean_myr.iloc[1:4].mean() - 1)})
+                     "velocity_change_pct": 100 * (last.velocity_mean_myr / first_year_velocity(d) - 1)})
     return pd.DataFrame(rows).set_index("run")
 
 

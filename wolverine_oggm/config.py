@@ -39,7 +39,7 @@ RGI7_OUTLINES = os.path.join(REPO, "data", "rgi7_glaciers_wolverine.geojson")
 # per-glacier calibration on Hugonnet et al. (2021) geodetic MB 2000-2020, dynamic spinup.
 PREPRO_BASE_URL = ("https://cluster.klima.uni-bremen.de/~oggm/gdirs/oggm_v1.6/"
                    "L3-L5_files/2025.6/elev_bands/W5E5/per_glacier_spinup/")
-PREPRO_LEVEL = 5          # 5 = ready to run (model_flowlines and the spun-up glacier included)
+PREPRO_LEVEL = 4          # 4 = calibrated, inverted and spun up, with the DEM, gridded data and inversion files (5 drops those)
 PREPRO_BORDER = 80        # grid points around the glacier in the local map
 
 WORKING_DIR = os.environ.get("WOLVERINE_OGGM_WORKDIR",
@@ -72,7 +72,16 @@ def get_glacier_directory(reset=False):
     init_oggm(reset=reset)
     if TEST_MODE:
         return _test_glacier_directory(reset=reset)
-    from oggm import workflow
+    from oggm import utils, workflow
+    if not reset:
+        # Reuse an existing directory: initialising from the preprocessed tarball again would
+        # overwrite it and delete the runs of earlier notebooks.
+        try:
+            gdir = utils.GlacierDirectory(RGI6_ID)
+            if os.path.exists(gdir.get_filepath("model_flowlines")):
+                return gdir
+        except Exception:
+            pass
     gdirs = workflow.init_glacier_directories([RGI6_ID], from_prepro_level=PREPRO_LEVEL,
                                               prepro_border=PREPRO_BORDER,
                                               prepro_base_url=PREPRO_BASE_URL, reset=reset, force=reset)

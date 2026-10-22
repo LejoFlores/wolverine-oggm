@@ -118,7 +118,7 @@ def _invert_once(gdir, fs, vol0):
     import logging
     lg = logging.getLogger("oggm.workflow")
     lvl = lg.level
-    lg.setLevel(logging.ERROR)
+    lg.setLevel(logging.CRITICAL)      # OGGM logs each task at its WORKFLOW level (45), above ERROR
     try:
         calibrate_inversion_from_consensus([gdir], fs=fs, volume_m3_reference=vol0,
                                            error_on_mismatch=False, add_to_log_file=False)

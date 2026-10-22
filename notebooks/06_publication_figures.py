@@ -106,12 +106,15 @@ axes[0].legend(frameon=False, fontsize=5, ncol=2)
 end = {lab: d.volume_km3.iloc[-10:].mean() for lab, d in sums.items()}
 x = np.arange(2)
 loss_full = [end["control"] - end[f"+{t} K full"] for t in (1, 2)]
-loss_phase = [end[f"+{t} K phase frozen"] - end[f"+{t} K full"] for t in (1, 2)]
-axes[1].bar(x, np.array(loss_full) - np.array(loss_phase), color=plotting.ICE, label="melt")
-axes[1].bar(x, loss_phase, bottom=np.array(loss_full) - np.array(loss_phase), color=plotting.RAIN, label="snow → rain")
+loss_only = [end["control"] - end[f"+{t} K phase only"] for t in (1, 2)]
+loss_frozen = [end["control"] - end[f"+{t} K phase frozen"] for t in (1, 2)]
+wd = 0.27
+axes[1].bar(x - wd, loss_full, wd, color=plotting.MIXED, label="full")
+axes[1].bar(x, loss_frozen, wd, color=plotting.SNOW, label="phase frozen (melt only)")
+axes[1].bar(x + wd, loss_only, wd, color=plotting.RAIN, label="phase only (snow → rain)")
 axes[1].set_xticks(x, ["+1 K", "+2 K"])
 axes[1].set_ylabel("Volume loss vs control (km³)")
-axes[1].legend(frameon=False, fontsize=6)
+axes[1].legend(frameon=False, fontsize=6, loc="upper left")
 plotting.label_panels(axes)
 fig.tight_layout()
 plotting.test_mode_note(fig)

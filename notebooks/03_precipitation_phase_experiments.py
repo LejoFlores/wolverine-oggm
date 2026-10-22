@@ -142,9 +142,43 @@ plotting.test_mode_note(fig)
 # full − phase frozen ≈ the part of the warming response due to snow turning into rain. The
 # decomposition is not exactly additive, because the glacier shrinks to different elevations, so
 # report all three.
+#
+# First the clean version, on the **fixed present geometry**: the change in glacier-wide mean
+# specific MB over the calibration period. No dynamics are involved, so the parts are directly
+# comparable.
 
 # %%
+from oggm import cfg as _cfg
+
+h, w = massbalance.flowline_heights_and_weights(gdir)
+
+
+def mean_smb(cls, dT):
+    mb = cls(gdir)
+    if dT:
+        mb.temp_bias = mb.temp_bias + dT
+    return np.mean([np.average(mb.get_annual_mb(h, y) * _cfg.SEC_IN_YEAR * mb.rho, weights=w) for y in range(y0, y1 + 1)])
+
+
 base = cal["OGGM ramp + daily spread"]
+ref = mean_smb(base, 0)
+rows = []
+for dT in (1.0, 2.0):
+    full = mean_smb(base, dT) - ref
+    frozen = mean_smb(massbalance.with_settings(base, precip_temp_offset=-dT), dT) - ref
+    only = mean_smb(massbalance.with_settings(base, precip_temp_offset=+dT), 0) - ref
+    rows.append({"warming_K": dT, "dSMB_full": full, "dSMB_phase_frozen": frozen, "dSMB_phase_only": only,
+                 "phase_share_pct (only/full)": 100 * only / full, "phase_share_pct ((full-frozen)/full)": 100 * (full - frozen) / full})
+print("Change in glacier-wide mean SMB on fixed geometry (kg m-2 yr-1)")
+pd.DataFrame(rows).set_index("warming_K").round(1)
+
+# %% [markdown]
+# Now the dynamic runs. Beware of saturation: when "full" and "phase frozen" both nearly
+# remove the glacier, their difference shrinks toward zero. That doesn't mean phase stopped
+# mattering, only that there is no ice left to lose. "phase only" against "full" is the more
+# robust ratio.
+
+# %%
 runs = {"control": (base, 0.0)}
 for dT in (1.0, 2.0):
     runs[f"+{dT:g} K full"] = (base, dT)
@@ -163,8 +197,8 @@ for dT in (1.0, 2.0):
     frozen = ctrl - h3.loc[f"+{dT:g} K phase frozen", "volume_end_km3"]
     only = ctrl - h3.loc[f"+{dT:g} K phase only", "volume_end_km3"]
     rows.append({"warming_K": dT, "volume_loss_full_km3": full, "loss_from_phase_km3 (full − frozen)": full - frozen,
-                 "phase_share_pct": 100 * (full - frozen) / full if full else np.nan,
-                 "loss_phase_only_km3": only})
+                 "phase_share_pct (full-frozen)": 100 * (full - frozen) / full if full else np.nan,
+                 "loss_phase_only_km3": only, "phase_share_pct (only/full)": 100 * only / full if full else np.nan})
 pd.DataFrame(rows).set_index("warming_K").round(3)
 
 # %%

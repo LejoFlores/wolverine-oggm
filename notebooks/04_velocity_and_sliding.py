@@ -83,6 +83,7 @@ def add_velocity_obs(gdir):
             millan22.millan_velocity_to_gdir(gdir)
         except Exception as err:
             print("Millan 2022 not added:", err.__class__.__name__, err)
+    cfg.set_logging_config("CRITICAL")      # the data shop turns OGGM's logging back on
     with xr.open_dataset(gdir.get_filepath("gridded_data")) as ds:
         return ds.load()
 
@@ -97,13 +98,15 @@ def by_elevation(grid, var, bins):
     z = grid["topo"].values[m]
     v = grid[var].values[m]
     k = np.digitize(z, bins) - 1
-    out = pd.DataFrame({"k": k, "v": v}).dropna().groupby("k")["v"].agg(["median", lambda s: s.quantile(0.25), lambda s: s.quantile(0.75)])
+    ok = (k >= 0) & (k < len(bins) - 1)
+    out = pd.DataFrame({"k": k[ok], "v": v[ok]}).dropna().groupby("k")["v"].agg(["median", lambda s: s.quantile(0.25), lambda s: s.quantile(0.75)])
     out.columns = ["median", "q25", "q75"]
     out.index = 0.5 * (bins[out.index] + bins[out.index + 1])
     return out
 
 
-bins = np.arange(np.floor(fl0.surface_h.min() / 50) * 50, fl0.surface_h.max() + 50, 50)
+zice = fl0.surface_h[fl0.thick > 0]
+bins = np.arange(np.floor(zice.min() / 50) * 50, zice.max() + 50, 50)
 x, u_def, _ = dynamics.velocity_partition(fl0, glen_a0, 0.0)
 zs = 0.5 * (fl0.surface_h[1:] + fl0.surface_h[:-1])
 fig, ax = plt.subplots(figsize=(plotting.WIDTH_1COL * 1.2, 3))
@@ -204,8 +207,8 @@ last = fh[fh.index >= fh.index.max() - 3]
 axes[1].plot(last.index, last["L"], color=plotting.RAIN)
 axes[1].set_ylabel("Liquid input (kg m⁻² month⁻¹)", color=plotting.RAIN)
 ax2 = axes[1].twinx()
-ax2.plot(last.index, last["fs"] / sl["fs"], color="k", lw=0.8)
-ax2.set_ylabel("f_s / f_s0")
+ax2.plot(last.index, last["fs"] / sl["fs"], color="k", lw=0.8, ls="--")
+ax2.set_ylabel("f_s / f_s0 (dashed)")
 axes[0].set_xlabel("Month")
 axes[0].set_ylabel("Mean surface velocity (m yr⁻¹)")
 axes[1].set_xlabel("Model year")
@@ -236,6 +239,11 @@ plotting.test_mode_note(fig)
 # %% [markdown]
 # ## Interpreting H5
 #
+# * Calibrate $k$ before reading too much into the phase runs. With $k = 1$, sliding scales
+#   one-to-one with liquid input. Summer input is several times $L_{ref}$, so summer speeds come
+#   out several times winter speeds. That is probably far stronger than observed. Fit $k$ (and
+#   the sliding fraction) to the observed summer-to-winter speed ratio first, e.g. from ITS_LIVE
+#   image-pair velocities binned by season.
 # * With $k$ > 0, rain and melt months speed the glacier up. The **phase** experiments
 #   (threshold 0 vs 2 °C, phase +1 K) show how much of that seasonal signal comes from
 #   precipitation arriving as rain rather than snow.

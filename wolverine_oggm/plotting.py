@@ -73,10 +73,14 @@ def phase_curves(ax, curves, t=np.linspace(-6, 6, 241), samples=None, styles=Non
 
 def hovmoller(ax, da, cmap="viridis", vmin=None, vmax=None, label=None):
     """Time vs distance-along-flowline image of a fl_diagnostics variable (e.g. ice_velocity_myr)."""
+    keep = np.isfinite(da.values).any(axis=0)            # drop the ice-free valley below the glacier
+    if keep.any():
+        da = da.isel(dis_along_flowline=slice(0, np.where(keep)[0].max() + 2))
     x = da["dis_along_flowline"].values / 1000
     im = ax.pcolormesh(x, da["time"].values, da.values, cmap=cmap, vmin=vmin, vmax=vmax, shading="auto")
     ax.set_xlabel("Distance along flowline (km)")
     ax.set_ylabel("Year")
+    ax.yaxis.set_major_locator(mpl.ticker.MaxNLocator(integer=True))
     cb = plt.colorbar(im, ax=ax, pad=0.02)
     if label:
         cb.set_label(label)

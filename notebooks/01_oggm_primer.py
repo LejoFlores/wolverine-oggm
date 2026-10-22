@@ -44,6 +44,7 @@ warnings.filterwarnings("ignore", category=RuntimeWarning)
 plotting.set_style("paper")
 gdir = config.get_glacier_directory()
 fl = gdir.read_pickle("model_flowlines")[-1]
+zice = fl.surface_h[fl.thick > 0]          # glacier surface only (the flowline continues down-valley)
 
 # %% [markdown]
 # ## 1. Climate at each height
@@ -62,7 +63,7 @@ fl = gdir.read_pickle("model_flowlines")[-1]
 # %%
 mb = MonthlyTIModel(gdir)
 print(mb)
-heights = np.linspace(fl.surface_h.min(), fl.surface_h.max(), 6).round()
+heights = np.linspace(zice.min(), zice.max(), 6).round()
 y = config.calibration_years()[1]
 temp, tmelt, prcp, prcpsol = mb._get_2d_annual_climate(heights, y)
 fig, axes = plt.subplots(1, 2, figsize=(plotting.WIDTH_2COL, 2.4))
@@ -122,7 +123,7 @@ plotting.test_mode_note(fig)
 
 # %%
 y0, y1 = config.calibration_years()
-hh = np.linspace(fl.surface_h.min() - 100, fl.surface_h.max() + 100, 40)
+hh = np.linspace(zice.min() - 100, zice.max() + 100, 40)
 acc = np.mean([mb.get_annual_climate(hh, yr)[3] for yr in range(y0, y1 + 1)], axis=0)
 liq = np.mean([mb.get_annual_climate(hh, yr)[2] for yr in range(y0, y1 + 1)], axis=0) - acc
 smb = np.mean([mb.get_annual_mb(hh, yr) for yr in range(y0, y1 + 1)], axis=0) * cfg.SEC_IN_YEAR * cfg.PARAMS["ice_density"]
@@ -131,7 +132,7 @@ ax.plot(acc, hh, color=plotting.SNOW, label="Solid precipitation")
 ax.plot(liq, hh, color=plotting.RAIN, label="Liquid precipitation (runs off)")
 ax.plot(smb, hh, color="k", label="Surface mass balance")
 ax.axvline(0, color=plotting.GREY, lw=0.5)
-ela = np.interp(0, smb[::-1], hh[::-1]) if (smb.min() < 0 < smb.max()) else np.nan
+ela = np.interp(0, smb, hh) if (smb.min() < 0 < smb.max()) else np.nan
 ax.axhline(ela, color=plotting.GREY, ls="--", lw=0.7)
 ax.text(ax.get_xlim()[0], ela, f" ELA ≈ {ela:.0f} m", va="bottom", fontsize=6)
 ax.set_xlabel(f"kg m⁻² yr⁻¹ (mean {y0}–{y1})")
