@@ -27,7 +27,7 @@ if ! "$PY" -c "import sys; from wolverine_oggm import hpc; c=hpc.load_config(sys
   echo "spinup job $J0"
   DEP=(--dependency=afterok:$J0)
 fi
-J1=$(sbatch --parsable "${DEP[@]}" -c "$CPUS" --array=0-$((NT - 1)) -o "$LOGS/members-%A_%a.log" \
+J1=$(sbatch --parsable ${DEP[@]+"${DEP[@]}"} -c "$CPUS" --array=0-$((NT - 1)) -o "$LOGS/members-%A_%a.log" \
      ${MEMBERS_SBATCH:-} borah/run_members.slurm "$CONFIG")
 J2=$(sbatch --parsable --dependency=afterany:$J1 -o "$LOGS/collect-%j.log" borah/collect.slurm "$CONFIG")
 echo "members array $J1, collect $J2. Logs in $LOGS; watch with: squeue -u ${USER:-$(id -un)}"
