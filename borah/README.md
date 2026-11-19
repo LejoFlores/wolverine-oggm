@@ -10,8 +10,8 @@ same experiments at scale.
 ```bash
 git clone https://github.com/LejoFlores/wolverine-oggm.git ~/wolverine-oggm
 cd ~/wolverine-oggm
-bash borah/install.sh                          # LOGIN node: conda env + sample data (10-15 min, once)
-sbatch borah/check.slurm                       # compute node, offline: imports and unit tests
+bash borah/fetch_env.sh                        # LOGIN node: downloads only, installs nothing (~5 min)
+sbatch borah/install.slurm                     # short queue, offline: builds the env and tests it
 bash borah/submit.sh experiments/smoke_test.yml   # LOGIN node: prepares, then queues the jobs
 ```
 
@@ -24,7 +24,12 @@ bash borah/submit.sh experiments/smoke_test.yml   # LOGIN node: prepares, then q
 rasterio, HDF5 and netCDF, PROJ, scipy) are conda-forge binaries. Two Borah facts shape the
 install:
 
-* Compute nodes run glibc 2.17, and the login node runs a newer one. `install.sh` sets
+* Nothing is installed on the login node. `fetch_env.sh` only downloads: it resolves the
+  package list, fetches the packages, the OGGM wheel and the sample data into
+  `$OGGM_ROOT/install/`. `install.slurm` then builds the env on a compute node (`short` queue),
+  from that exact list and those local files, with no solver and no internet, and runs the
+  tests there.
+* Compute nodes run glibc 2.17, and the login node runs a newer one. `fetch_env.sh` sets
   `CONDA_OVERRIDE_GLIBC=2.17`, so the solver only picks builds that also run on compute nodes.
   A solve with that setting on 2026-11-19 gave Python 3.11, numpy 2.4, GDAL 3.12, rasterio 1.4,
   HDF5 2.2 and netCDF 4.10, all built for glibc 2.17.
@@ -38,14 +43,15 @@ OGGM is not on conda-forge. It comes from PyPI (`oggm==1.6.3`, the pip section o
 because it asked conda for OGGM.
 
 The Slurm scripts call the env's Python by its full path, not through `conda activate`. That
-path is written to `$OGGM_ROOT/env.sh` by `install.sh`. Base conda never has to run on a
+path is written to `$OGGM_ROOT/env.sh` by `install.slurm`. Base conda never has to run on a
 compute node.
 
 Everything goes under `OGGM_ROOT` (default `/bsuscratch/$USER/oggm`):
 
 | Path | What |
 | --- | --- |
-| `env.sh` | Written by `install.sh`. Python path, `OGGM_ROOT`, download cache, one thread per process |
+| `install/` | Downloads from `fetch_env.sh`: conda packages, `explicit.txt`, OGGM wheel, sample data |
+| `env.sh` | Written by `install.slurm`. Python path, `OGGM_ROOT`, download cache, one thread per process |
 | `install_manifest.txt` | Versions, host and glibc of the install |
 | `download_cache/` | OGGM's download cache (`OGGM_DOWNLOAD_CACHE`): DEM tiles, W5E5, geodetic MB, ISIMIP3b... |
 | `gdirs/<setup>/` | Prepared glacier directories, shared by every experiment that names this setup |
@@ -145,6 +151,11 @@ The per-member `fl_diagnostics` files open with
 
 These were tested in a cloud container, not yet on Borah. The env was built with the same
 `environment.yml` and the glibc 2.17 pin. Everything ran offline after the fetch step.
+
+* `fetch_env.sh` then `install.slurm`: 352 packages (500 MB) fetched, the env built from the
+  local files with `conda create --offline`, and the sample data unpacked. The import check
+  and the 9 tests passed. Use mamba for the fetch step if you have it: the same solve with
+  plain conda took over 20 minutes there.
 
 * Default grid, Wolverine: the calibration matches the published level-5 directories
   (`prcp_fac` 1.01, `temp_bias` −3.07 K, `melt_f` 6.0, dynamic spinup succeeded). Random,
