@@ -5,7 +5,7 @@
 #SBATCH -c 2
 #SBATCH -t 00:20:00
 #SBATCH -o oggm-check-%j.log
-# Step 2: proves the env from borah/install.sh works on a compute node with no internet:
+# Optional re-check (install.slurm already runs the tests): proves the env works on a compute node with no internet:
 # glibc, imports, and the unit tests on OGGM's offline sample glacier.
 #   sbatch borah/check.slurm
 set -euo pipefail
