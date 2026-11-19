@@ -1,0 +1,19 @@
+# Larger domain: every RGI 6.2 glacier of at least 0.1 km2 whose centre lies in this box around Wolverine
+# (the Kenai Mountains between Seward and Whittier; the first fetch reads the 420 MB RGI file). OGGM's
+# default grid per glacier. Projections as in projections_isimip3b_25m.yml, OGGM ramp only: 15 members,
+# each running every glacier. For a few hundred glaciers give the spinup job more cores:
+#   sbatch -p bsudfq -c 32 -t 4:00:00 borah/spinup.slurm experiments/regional_kenai_projections.yml
+name: regional_kenai_projections
+setup:
+  name: kenai_default
+  glaciers: {bbox: [-149.6, 60.1, -148.4, 60.8], min_area_km2: 0.1}
+scenario:
+  type: gcm
+  gcms: [gfdl-esm4_r1i1p1f1, ipsl-cm6a-lr_r1i1p1f1, mpi-esm1-2-hr_r1i1p1f1, mri-esm2-0_r1i1p1f1, ukesm1-0-ll_r1i1p1f2]
+  ssps: [ssp126, ssp370, ssp585]
+  ye: 2100
+factors:
+  phase: [oggm]
+  temp_std: file
+output:
+  fl_diagnostics: false     # keep only the compiled volume/area/length per glacier

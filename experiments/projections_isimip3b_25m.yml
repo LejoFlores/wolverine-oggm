@@ -1,0 +1,19 @@
+# 21st-century projections: the five primary ISIMIP3b GCMs (bias-corrected CMIP6, on OGGM's server) x three
+# SSPs x three phase schemes, from the spun-up 2020 glacier to 2100. 45 members. The GCM files are processed
+# into the glacier directories by `prepare --stage fetch` (login node).
+name: projections_isimip3b_25m
+setup:
+  name: wolverine_25m
+  glaciers: [RGI60-01.09162]
+  dx: 25
+  flowline_dx: 1
+  dem: COPDEM30
+  shop: [millan_velocity, itslive_velocity, consensus_thickness]
+scenario:
+  type: gcm
+  gcms: [gfdl-esm4_r1i1p1f1, ipsl-cm6a-lr_r1i1p1f1, mpi-esm1-2-hr_r1i1p1f1, mri-esm2-0_r1i1p1f1, ukesm1-0-ll_r1i1p1f2]
+  ssps: [ssp126, ssp370, ssp585]
+  ye: 2100
+factors:
+  phase: [oggm, threshold0, jennings90]
+  temp_std: file            # GCM files have no daily spread: the W5E5 monthly climatology is used

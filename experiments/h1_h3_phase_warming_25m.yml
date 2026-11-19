@@ -1,0 +1,20 @@
+# H1 and H3 at 25 m: five rain/snow schemes (each recalibrated to the same geodetic MB), three warmings,
+# five random-climate sequences, 300 years each. 75 members.
+name: h1_h3_phase_warming_25m
+setup:
+  name: wolverine_25m
+  glaciers: [RGI60-01.09162]
+  dx: 25                    # map grid (m). OGGM's default for Wolverine is 67 m
+  flowline_dx: 1            # flowline spacing in grid cells (OGGM default 2): 25 m instead of 134 m
+  dem: COPDEM30             # or a GeoTIFF path (relative paths are relative to this file), e.g. an IfSAR DTM
+  shop: [millan_velocity, itslive_velocity, consensus_thickness]   # observations binned on the flowline
+  spinup: true              # dynamic melt_f calibration from 1979, as in OGGM's level-5 directories
+scenario:
+  type: random
+  nyears: 300
+  seeds: [1, 2, 3, 4, 5]
+factors:
+  phase: [oggm, threshold0, threshold2, jennings90, "logistic:1.0:0.5"]
+  temp_std: file            # average the phase curve over W5E5's daily temperature spread
+  recalibrate: true
+  temperature_bias: [0, 1, 2]

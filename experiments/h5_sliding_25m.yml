@@ -1,0 +1,23 @@
+# H5: sliding that follows monthly liquid water input (rain + melt), wolverine_oggm.dynamics.HydroSliding.
+# The thickness is re-inverted with 50% of the surface speed from sliding (same volume), then coupling k = 0
+# (constant sliding), 0.5, 1. Monthly output, so seasonal velocity is resolved. Monthly steps make these
+# runs slower than the others: give the array more time (MEMBERS_SBATCH="-t 12:00:00").
+name: h5_sliding_25m
+setup:
+  name: wolverine_25m
+  glaciers: [RGI60-01.09162]
+  dx: 25
+  flowline_dx: 1
+  dem: COPDEM30
+  shop: [millan_velocity, itslive_velocity, consensus_thickness]
+scenario:
+  type: random
+  nyears: 100
+  seeds: [1, 2, 3]
+factors:
+  phase: [oggm, threshold0, threshold2]
+  temp_std: file
+  temperature_bias: [0, 1]
+  sliding: {fraction: 0.5, coupling: [0, 0.5, 1]}
+output:
+  monthly: true
