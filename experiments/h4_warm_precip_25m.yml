@@ -1,0 +1,20 @@
+# H4: precipitation falling in warmer-than-average weather (atmospheric rivers). The phase is computed at
+# T + offset, melt is not; each offset is recalibrated. Swap in a SCHNAPS-derived curve with
+#   phase: [/path/to/wolverine_phase_curve.csv]      (columns t, frac; see notebook 05)
+name: h4_warm_precip_25m
+setup:
+  name: wolverine_25m
+  glaciers: [RGI60-01.09162]
+  dx: 25
+  flowline_dx: 1
+  dem: COPDEM30
+  shop: [millan_velocity, itslive_velocity, consensus_thickness]
+scenario:
+  type: random
+  nyears: 300
+  seeds: [1, 2, 3, 4, 5]
+factors:
+  phase: [oggm, jennings90]
+  temp_std: file
+  precip_temp_offset: [0, 0.5, 1, 2]
+  temperature_bias: [0, 1]

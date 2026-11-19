@@ -1,0 +1,15 @@
+# First run on Borah: OGGM's default grid for Wolverine (67 m map, 134 m flowline spacing), two phase
+# schemes x two warmings, 30 years. Minutes in total. Compare with notebook 03 (calibration: prcp_fac ~1.01,
+# temp_bias ~ -3.07 K, melt_f ~6.0).
+name: smoke_test
+setup:
+  name: wolverine_default          # glacier directories are shared by every experiment naming this setup
+  glaciers: [RGI60-01.09162]
+scenario:
+  type: random                     # years drawn at random from the 2000-2019 calibration period
+  nyears: 30
+  seeds: [1]
+factors:
+  phase: [oggm, threshold2]
+  temp_std: file
+  temperature_bias: [0, 1]

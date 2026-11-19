@@ -1,10 +1,12 @@
 # conda env create -f environment.yml && conda activate wolverine-oggm
+# OGGM itself is not on conda-forge: it is pure Python and comes from PyPI (pip section below).
+# Everything compiled (numpy, GDAL/rasterio, HDF5/netCDF, PROJ...) comes from conda-forge.
+# On Borah use borah/install.sh, which also pins those builds to the compute nodes' glibc 2.17.
 name: wolverine-oggm
 channels:
   - conda-forge
 dependencies:
   - python=3.11
-  - oggm=1.6.3
   - salem
   - xarray
   - netcdf4
@@ -16,10 +18,15 @@ dependencies:
   - scipy
   - pytables
   - matplotlib
+  - configobj
+  - progressbar2
+  - joblib
+  - pyyaml
   - jupyterlab
   - jupytext
   - nbconvert
   - pytest
   - pip
   - pip:
+      - oggm==1.6.3
       - -e .

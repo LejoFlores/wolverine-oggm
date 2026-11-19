@@ -14,7 +14,7 @@ model physics it relies on and says what standard OGGM can and cannot represent.
 ```bash
 git clone https://github.com/LejoFlores/wolverine-oggm.git
 cd wolverine-oggm
-conda env create -f environment.yml
+conda env create -f environment.yml      # conda-forge libraries, OGGM 1.6.3 from PyPI
 conda activate wolverine-oggm
 jupyter lab notebooks/
 ```
@@ -24,6 +24,14 @@ The first notebook downloads Wolverine's preprocessed OGGM glacier directory (ab
 `WOLVERINE_OGGM_WORKDIR`. Figures go to `$WOLVERINE_OGGM_WORKDIR/figures`, or to
 `WOLVERINE_OGGM_FIGDIR` if set. On Borah, download on the login node, because compute nodes have
 no internet.
+
+## Large runs on Borah
+
+[`borah/`](borah/README.md) installs OGGM on Boise State's Borah cluster and runs experiments as Slurm
+arrays: finer grids (e.g. 25 m instead of OGGM's 67 m map and 134 m flowline spacing), long runs, large
+ensembles over phase schemes, warming and random-climate seeds, ISIMIP3b/CMIP6 projections, and many
+glaciers at once. Experiments are YAML files in [`experiments/`](experiments/), and the runner is
+`python -m wolverine_oggm.hpc`.
 
 ## Notebooks
 
