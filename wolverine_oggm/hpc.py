@@ -7,9 +7,9 @@ seed or GCM/SSP, sliding). Every combination of factors is one *member*: one OGG
 
 Three steps, each a sub-command of `python -m wolverine_oggm.hpc`:
 
-    prepare  CONFIG --stage fetch    needs internet (Borah login node): outlines, DEM, flowlines,
-                                     climate, MB calibration, inversion, GCM files
-    prepare  CONFIG --stage spinup   offline (compute node): historical run and dynamic spinup
+    prepare  CONFIG --stage fetch    needs internet (borah/prepare.slurm, short queue): outlines,
+                                     DEM, flowlines, climate, MB calibration, inversion, GCM files
+    prepare  CONFIG --stage spinup   offline: historical run and dynamic spinup
     list     CONFIG                  writes members.csv and prints the member count
     run      CONFIG --members 0-39   offline (Slurm array task): runs those members, `--procs` at a time
     collect  CONFIG                  merges every member into ensemble.nc and summary.csv
@@ -280,7 +280,7 @@ def prepare_fetch(conf, force=False):
     """Everything that downloads: outlines, DEM on the chosen grid, elevation-band flowlines,
     optional observations (velocity, thickness, dh/dt), baseline climate, MB calibration to the
     Hugonnet et al. (2021) geodetic MB, inversion calibrated to the consensus volume, and GCM
-    files. Light on CPU; runs on a login node."""
+    files. Light on CPU, but needs internet."""
     from oggm import cfg, tasks, workflow, utils
     setup = conf["setup"]
     sdir = setup_dir(conf)
@@ -356,7 +356,7 @@ def prepare_spinup(conf, force=False):
     setup = conf["setup"]
     sdir = setup_dir(conf)
     if not _stage_done(sdir, "fetch", setup):
-        raise RuntimeError(f"run `prepare --stage fetch` for setup '{setup['name']}' first (on a login node)")
+        raise RuntimeError(f"run `prepare --stage fetch` for setup '{setup['name']}' first (borah/prepare.slurm does both stages)")
     if _stage_done(sdir, "spinup", setup) and not force:
         print(f"{sdir}: spinup already done")
         return

@@ -22,8 +22,8 @@ jupyter lab notebooks/
 The first notebook downloads Wolverine's preprocessed OGGM glacier directory (about 20 MB) from
 `cluster.klima.uni-bremen.de` into `~/OGGM_runs/wolverine`. To put it elsewhere, set
 `WOLVERINE_OGGM_WORKDIR`. Figures go to `$WOLVERINE_OGGM_WORKDIR/figures`, or to
-`WOLVERINE_OGGM_FIGDIR` if set. On Borah, download on the login node, because compute nodes have
-no internet.
+`WOLVERINE_OGGM_FIGDIR` if set. On Borah, follow [`borah/README.md`](borah/README.md) instead, where the downloads
+run as Slurm jobs.
 
 ## Large runs on Borah
 
