@@ -3,31 +3,37 @@
 #SBATCH -p short
 #SBATCH -n 1
 #SBATCH -c 4
-#SBATCH -t 00:45:00
+#SBATCH -t 01:30:00
 #SBATCH -o oggm-install-%j.log
-# Step 2 of 2 of the install, on a compute node, offline. Run borah/fetch_env.sh on the login node first.
+# The whole install, on a compute node (short queue). Nothing runs on the login node.
 #   sbatch borah/install.slurm
-# Creates (or recreates) the conda env "wolverine-oggm" from the downloaded packages (explicit list, so no
-# solver and no internet), installs OGGM and this repo with pip from local files, unpacks the sample data
-# into ~/.oggm and ~/.salem_cache, writes $OGGM_ROOT/env.sh (sourced by every other script here) and tests
-# the env. Settings: OGGM_ROOT, WOLVERINE_OGGM_ENV (default wolverine-oggm), CONDA.
+# 1. Runs borah/fetch_env.sh here unless an earlier run finished it (FETCH=1 forces it): solves the env for
+#    glibc 2.17 and downloads the packages, the OGGM wheel and the sample data into $OGGM_ROOT/install/.
+#    This needs internet from the compute node (short-queue nodes have it).
+# 2. Creates (or recreates) the env at $WOLVERINE_OGGM_PREFIX (default ~/envs/wolverine-oggm) from those files
+#    with the same standalone micromamba (explicit list: no solver, no internet; your own conda is not used),
+#    installs OGGM and this repo with pip from local files, unpacks the sample data into ~/.oggm and
+#    ~/.salem_cache, writes $OGGM_ROOT/env.sh (sourced by every other script here) and tests the env.
 set -euo pipefail
 REPO=$(cd "${SLURM_SUBMIT_DIR:-.}" && git rev-parse --show-toplevel)
-ENV=${WOLVERINE_OGGM_ENV:-wolverine-oggm}
+PREFIX=${WOLVERINE_OGGM_PREFIX:-$HOME/envs/wolverine-oggm}
 OGGM_ROOT=${OGGM_ROOT:-/bsuscratch/$USER/oggm}
 STAGE=$OGGM_ROOT/install
-[ -s "$STAGE/fetched.txt" ] || { echo "No complete download in $STAGE: run bash borah/fetch_env.sh on the login node first"; exit 1; }
+if [ ! -s "$STAGE/fetched.txt" ] || [ "${FETCH:-0}" = 1 ]; then
+  curl -s -o /dev/null -m 30 https://conda.anaconda.org/conda-forge/ || {
+    echo "$(hostname) cannot reach conda.anaconda.org. Run  bash borah/fetch_env.sh  where there is internet, then resubmit."
+    exit 1; }
+  bash "$REPO/borah/fetch_env.sh"
+fi
 echo "node $(hostname)  $(ldd --version | head -1)"
 
-CONDA=${CONDA:-$(command -v conda || true)}
-[ -n "$CONDA" ] || CONDA=$HOME/miniforge3/bin/conda
-export CONDA_PKGS_DIRS=$STAGE/conda_pkgs_cache     # unpack here, not in ~ (quota)
-if "$CONDA" env list | awk '{print $1}' | grep -qx "$ENV"; then
-  echo "removing the existing env $ENV"
-  "$CONDA" env remove -y -n "$ENV"
+MM=$OGGM_ROOT/bin/micromamba
+export MAMBA_ROOT_PREFIX=$OGGM_ROOT/micromamba
+if [ -d "$PREFIX" ]; then
+  echo "replacing the existing env at $PREFIX"
+  rm -rf "$PREFIX"
 fi
-"$CONDA" create -y -n "$ENV" --offline --file "$STAGE/explicit.txt"
-PREFIX=$("$CONDA" env list | awk -v e="$ENV" '$1==e {print $NF}')
+"$MM" create -y -p "$PREFIX" --offline -f "$STAGE/explicit.txt"
 PY=$PREFIX/bin/python
 "$PY" -m pip install -q --no-index --no-deps "$STAGE"/wheels/oggm-1.6.3-*.whl
 "$PY" -m pip install -q --no-index --no-deps --no-build-isolation -e "$REPO"
@@ -66,5 +72,5 @@ EOF
 git -C "$REPO" rev-parse --short HEAD | sed 's/^/wolverine-oggm commit /' >> "$OGGM_ROOT/install_manifest.txt"
 cd "$REPO"
 WOLVERINE_OGGM_TEST=1 "$PY" -m pytest -q -p no:warnings tests
-rm -rf "$CONDA_PKGS_DIRS"
+"$MM" clean -y --all >/dev/null 2>&1 || true     # unpacked package cache
 echo "install OK: $PREFIX"

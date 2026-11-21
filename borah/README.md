@@ -10,12 +10,13 @@ same experiments at scale.
 ```bash
 git clone https://github.com/LejoFlores/wolverine-oggm.git ~/wolverine-oggm
 cd ~/wolverine-oggm
-bash borah/fetch_env.sh                        # LOGIN node: downloads only, installs nothing (~5 min)
-sbatch borah/install.slurm                     # short queue, offline: builds the env and tests it
-bash borah/submit.sh experiments/smoke_test.yml   # LOGIN node: prepares, then queues the jobs
+sbatch borah/install.slurm                        # short queue: downloads, builds the env, tests it
+bash borah/submit.sh experiments/smoke_test.yml   # only reads the config and calls sbatch
 ```
 
-`submit.sh` prints the job ids. When the jobs finish, the results are in
+Nothing heavy runs on the login node. `install.slurm` and the `prepare` job that `submit.sh`
+queues do their downloads from a compute node in the `short` queue, which has internet (as
+schnaps-borah's `build_domain.slurm` found). `submit.sh` prints the job ids. When the jobs finish, the results are in
 `/bsuscratch/$USER/oggm/results/smoke_test/`.
 
 ## How it is set up
@@ -24,32 +25,34 @@ bash borah/submit.sh experiments/smoke_test.yml   # LOGIN node: prepares, then q
 rasterio, HDF5 and netCDF, PROJ, scipy) are conda-forge binaries. Two Borah facts shape the
 install:
 
-* Nothing is installed on the login node. `fetch_env.sh` only downloads: it resolves the
-  package list, fetches the packages, the OGGM wheel and the sample data into
-  `$OGGM_ROOT/install/`. `install.slurm` then builds the env on a compute node (`short` queue),
-  from that exact list and those local files, with no solver and no internet, and runs the
-  tests there.
-* Compute nodes run glibc 2.17, and the login node runs a newer one. `fetch_env.sh` sets
-  `CONDA_OVERRIDE_GLIBC=2.17`, so the solver only picks builds that also run on compute nodes.
+* The install doesn't use your conda. `install.slurm` calls `fetch_env.sh`, which downloads a
+  standalone micromamba (one pinned binary) into `$OGGM_ROOT/bin`. That solves the package
+  list and downloads the packages, the OGGM wheel and the sample data into
+  `$OGGM_ROOT/install/`. Then the same micromamba builds the env at `~/envs/wolverine-oggm` from
+  that exact list and those local files, and the job runs the tests. An old conda installation
+  doesn't matter and is not touched. If a compute node ever lacks internet, run
+  `bash borah/fetch_env.sh` somewhere that has it, then `sbatch borah/install.slurm`.
+* Compute nodes run glibc 2.17. `fetch_env.sh` sets `CONDA_OVERRIDE_GLIBC=2.17`, so the
+  solver only picks builds that run there, wherever the solve happens.
   A solve with that setting on 2026-11-19 gave Python 3.11, numpy 2.4, GDAL 3.12, rasterio 1.4,
   HDF5 2.2 and netCDF 4.10, all built for glibc 2.17.
-* Compute nodes have no internet, and OGGM downloads on demand: sample data on its first
-  `cfg.initialize()`, then DEMs, climate, calibration data and GCM files. So every download
-  happens on the login node, and every job runs with OGGM's `has_internet = False`. A missing
-  file then fails at once with an error, instead of hanging on a download.
+* OGGM downloads on demand: sample data on its first `cfg.initialize()`, then DEMs, climate,
+  calibration data and GCM files. All of that happens in two places, the install and the
+  `prepare` job. The member runs work on local copies with OGGM's `has_internet = False`, so a
+  missing file fails at once instead of a download starting in the middle of an array.
 
 OGGM is not on conda-forge. It comes from PyPI (`oggm==1.6.3`, the pip section of
 `environment.yml`). The `environment.yml` on main before this change could not be installed,
 because it asked conda for OGGM.
 
-The Slurm scripts call the env's Python by its full path, not through `conda activate`. That
-path is written to `$OGGM_ROOT/env.sh` by `install.slurm`. Base conda never has to run on a
-compute node.
+The Slurm scripts call the env's Python by its full path. That path is written to
+`$OGGM_ROOT/env.sh` by `install.slurm`. For Jupyter, run `~/envs/wolverine-oggm/bin/jupyter lab`.
 
 Everything goes under `OGGM_ROOT` (default `/bsuscratch/$USER/oggm`):
 
 | Path | What |
 | --- | --- |
+| `bin/micromamba` | Standalone micromamba 2.10.0 used by the install |
 | `install/` | Downloads from `fetch_env.sh`: conda packages, `explicit.txt`, OGGM wheel, sample data |
 | `env.sh` | Written by `install.slurm`. Python path, `OGGM_ROOT`, download cache, one thread per process |
 | `install_manifest.txt` | Versions, host and glibc of the install |
@@ -114,8 +117,7 @@ MB. That includes OGGM's ramp, so all schemes are compared on equal terms (as in
 ```bash
 source /bsuscratch/$USER/oggm/env.sh; PY=$WOLVERINE_OGGM_PYTHON
 $PY -m wolverine_oggm.hpc show    experiments/X.yml                   # parsed config, paths, member count
-$PY -m wolverine_oggm.hpc prepare experiments/X.yml --stage fetch     # LOGIN node: downloads
-sbatch borah/spinup.slurm experiments/X.yml                           # historical run + dynamic spinup
+sbatch borah/prepare.slurm experiments/X.yml                          # downloads, preprocessing, spinup
 $PY -m wolverine_oggm.hpc list    experiments/X.yml                   # writes members.csv
 sbatch --array=0-9 borah/run_members.slurm experiments/X.yml          # 8 members per task by default
 sbatch borah/collect.slurm experiments/X.yml                          # ensemble.nc, summary.csv
@@ -152,10 +154,9 @@ The per-member `fl_diagnostics` files open with
 These were tested in a cloud container, not yet on Borah. The env was built with the same
 `environment.yml` and the glibc 2.17 pin. Everything ran offline after the fetch step.
 
-* `fetch_env.sh` then `install.slurm`: 352 packages (500 MB) fetched, the env built from the
-  local files with `conda create --offline`, and the sample data unpacked. The import check
-  and the 9 tests passed. Use mamba for the fetch step if you have it: the same solve with
-  plain conda took over 20 minutes there.
+* `install.slurm` (with its `fetch_env.sh` step), using only the standalone micromamba:
+  352 packages (500 MB) solved and fetched, the env built offline from the local files, and
+  the sample data unpacked. The import check and the 9 tests passed.
 
 * Default grid, Wolverine: the calibration matches the published level-5 directories
   (`prcp_fac` 1.01, `temp_bias` −3.07 K, `melt_f` 6.0, dynamic spinup succeeded). Random,
@@ -170,6 +171,6 @@ These were tested in a cloud container, not yet on Borah. The env was built with
   pays off for big ensembles (sensitivity sweeps over many parameters and seeds), long runs,
   and many glaciers.
 
-Not yet checked on Borah: the COPDEM30 tile download (OpenTopography's S3 bucket) from the
-login node, the `short` partition's time limit, and whether `$TMPDIR` on compute nodes is
+Not yet checked on Borah: the COPDEM30 tile download (OpenTopography's S3 bucket) from a
+compute node, the `short` partition's time limit, and whether `$TMPDIR` on compute nodes is
 node-local.
